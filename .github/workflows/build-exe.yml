@@ -1,0 +1,42 @@
+name: Build Windows EXE
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+
+  build-exe:
+
+    runs-on: windows-latest
+
+    steps:
+
+    - name: Clonar repositorio
+      uses: actions/checkout@v4
+
+    - name: Instalar Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.10"
+
+    - name: Instalar dependencias
+      run: |
+        pip install pandas
+        pip install openpyxl
+        pip install pillow
+        pip install pyinstaller
+
+    - name: Compilar EXE
+      run: |
+        pyinstaller Bimsa_Cli.py \
+          --onefile \
+          --name ETL_Historicos \
+          --clean
+
+    - name: Subir ejecutable
+      uses: actions/upload-artifact@v4
+      with:
+        name: ETL_Historicos
+        path: dist/ETL_Historicos.exe

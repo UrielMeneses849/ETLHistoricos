@@ -10,7 +10,6 @@ def main() -> int:
     p = argparse.ArgumentParser(description="BIMSA ETL: XML(string) -> Excel(.xlsx)")
 
     # Requeridos
-    p.add_argument("--tipo", required=True, help="Tipo de reporte (ej: MENSAJERO)")
     p.add_argument("--out-xlsx", required=True, help="Ruta destino del Excel .xlsx")
 
     # Runs / artifacts
@@ -51,7 +50,7 @@ def main() -> int:
 
         nombre_excel, excel_bytes = process_bimsa(
             xml_string,
-            args.tipo,
+            "HISTORICO",
             output_root=args.output_root,
             guardar_json=args.save_json,
             guardar_excel_en_disco=args.debug_save_excel,
