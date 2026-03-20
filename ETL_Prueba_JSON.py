@@ -897,19 +897,6 @@ def ETL_BIMSA(
         if nk2 not in ALLOWED_TEXT_COLUMNS:
             continue
 
-        if tipo_upper == "CONTACTOS":
-            if nk2 in ALIAS_NOMBRE_PROY:
-                df[col] = df[col].map(lambda x: _normalize_free_text("Proyecto", x, force_upper=True))
-                continue
-            if nk2 in ALIAS_DESC_PROY:
-                df[col] = df[col].map(lambda x: _normalize_free_text("Proyecto", x, force_upper=False))
-                df[col] = df[col].map(_uppercase_inside_quotes)
-                continue
-
-        if tipo_upper == "MAPAS" and nk2 in (ALIAS_NOMBRE_PROY | ALIAS_DESC_PROY | ALIAS_PROYECTO):
-            df[col] = df[col].map(lambda x: _normalize_free_text("Proyecto", x, force_upper=True))
-            continue
-
         if nk2 in ALIAS_NOMBRE_PROY:
             df[col] = df[col].map(lambda x: x.upper() if isinstance(x, str) else x)
             continue
