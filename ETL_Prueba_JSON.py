@@ -335,8 +335,15 @@ def _fix_shouty_caps_mixed(text: str) -> str:
             return w
         if w.replace(":", "").replace(".", "").upper() in {k.replace(".", "") for k in keep_upper}:
             return w
-        if len([ch for ch in w if ch.isalpha()]) >= 3 and all(ch.isupper() for ch in letters):
+        # Caso palabras completamente en mayúsculas
+        if all(ch.isupper() for ch in letters):
             low = w.lower()
+
+            # Abreviaciones comunes tipo AV, BLVD, CARR → convertir a formato "Av.", "Blvd.", etc.
+            if len(letters) <= 4:
+                return low[:1].upper() + low[1:]
+
+            # Palabras normales largas
             return low[:1].upper() + low[1:]
         return w
 
@@ -404,14 +411,22 @@ def _smart_text_format(v, col_name: str):
     if " " not in s and any(ch.isdigit() for ch in s) and any(ch.isalpha() for ch in s):
         return s
 
+    col_norm = _norm_noaccents_lower(col_name)
+
+    # 🔥 FIX DEFINITIVO: Siempre normalizar direcciones aunque no detecte all_caps correctamente
+    if any(k in col_norm for k in ["direccion", "localizacion"]):
+        return _fix_shouty_caps_mixed(s)
+
     letters = [ch for ch in s if ch.isalpha()]
     all_caps = bool(letters) and all(ch.isupper() for ch in letters)
+
     if all_caps:
         strat = _choose_case_strategy(col_name)
         if strat == "sentence":
             return _sentence_case_spanish(s)
         if strat == "title":
             return _title_case_spanish(s)
+
         return _title_case_spanish(s)
 
     return s
@@ -838,20 +853,23 @@ def ETL_BIMSA(
     # SOLO PROCESAR CAMPOS ESPECÍFICOS (WHITELIST)
     # =========================================================
     ALLOWED_TEXT_COLUMNS = {
-        "clave_proyecto",
-        "descripcion_del_proyecto",
-        "proyecto",
-        "del_cd_mun_proyecto",
-        "colonia_proyecto",
-        "localizacion1",
-        "descripcion",
-        "compania",
-        "direccion_compania",
-        "colonia_compania",
-        "del_cd_mun_compania",
-        "acabados",
-        "observaciones",
-        "descripcion_extra",
+        _norm_colkey(c) for c in{
+        "Clave_Proyecto",
+        "Descripcion_Proyecto",
+        "Proyecto",
+        "Del_Cd_Mun_Proyecto",
+        "Colonia_Proyecto",
+        "Localizacion1",
+        "Descripcion",
+        "Compania",
+        "Direccion_Compania",
+        "Colonia_Compania",
+        "Colonia",
+        "Del_Cd_Mun_Compania",
+        "Acabados",
+        "Observaciones",
+        "Descripcion_Extra"
+        }
     }
 
     # Precompute text columns once (avoids repeated dtype scanning)
@@ -904,6 +922,9 @@ def ETL_BIMSA(
         if nk2 in (ALIAS_DESC_PROY | ALIAS_PROYECTO):
             df[col] = df[col].map(lambda x: _normalize_free_text("Proyecto", x, force_upper=False))
             df[col] = df[col].map(_uppercase_inside_quotes)
+
+        elif nk2 in ("del_cd_mun_proyecto", "del_cd_mun_compania"):
+            df[col] = df[col].map(lambda x: _title_case_spanish(x) if isinstance(x, str) else x)
 
         elif nk2 in ALIAS_LOCALIZ:
             df[col] = df[col].map(lambda x: _normalize_free_text("Localizacion1", x, force_upper=False))
